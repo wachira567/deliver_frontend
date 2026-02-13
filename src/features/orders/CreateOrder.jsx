@@ -149,20 +149,7 @@ export default function CreateOrder() {
     }
   };
   
-  // Dev Pay Function
-  const handleDevPay = async () => {
-      if(!currentOrderId) return;
-      if(!window.confirm("Simulate successful payment? (Dev Only)")) return;
-      
-      try {
-          const { simulatePayment } = await import("../../api/payments");
-          await simulatePayment(currentOrderId);
-          toast.success("Order simulated as PAID!");
-          navigate("/orders");
-      } catch(e) {
-          toast.error("Simulation failed");
-      }
-  };
+
 
 
   // Haversine formula to calculate distance in km
@@ -331,22 +318,12 @@ export default function CreateOrder() {
                 <div className="mt-4">
                     <p className="text-red-600 text-sm mb-2">{errorMessage}</p>
                     {currentOrderId && (
-                        <div className="flex flex-col gap-2">
                         <button 
                             onClick={checkStatus}
                             className="text-sm text-green-600 underline font-semibold"
                         >
                             I have paid, check status again
                         </button>
-                        
-                        {/* Simulation Button */}
-                        <button 
-                            onClick={handleDevPay}
-                             className="text-xs text-gray-500 hover:text-black underline flex items-center justify-center gap-1 mt-2"
-                        >
-                            ⚡ Sandbox Stuck? Simulate Pay
-                        </button>
-                        </div>
                     )}
                 </div>
               )}

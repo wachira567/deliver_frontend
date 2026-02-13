@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navigation2, XCircle, ArrowRight, CreditCard, Loader2, RefreshCw } from "lucide-react";
 import { getMyOrders, cancelOrder } from "../../api/orders";
-import { initiatePayment, pollPaymentStatus, validatePhoneNumber, simulatePayment } from "../../api/payments";
+import { initiatePayment, pollPaymentStatus, validatePhoneNumber } from "../../api/payments";
 
 const STATUS_STYLES = {
   PENDING: { bg: "bg-yellow-100", text: "text-yellow-800", dot: "bg-yellow-500", label: "Pending" },
@@ -206,25 +206,6 @@ export default function MyOrders() {
                         className="px-8 py-5 bg-[#2fbb1c] text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full hover:bg-black transition-all active:scale-95 shadow-lg flex items-center gap-2"
                       >
                         <CreditCard size={14} /> Pay Now
-                      </button>
-                      
-                      {/* DEV ONLY: Simulate Payment Button */}
-                      <button
-                        onClick={async (e) => {
-                           e.stopPropagation();
-                           if(!window.confirm("Simulate successful payment for this order? (Dev Only)")) return;
-                           try {
-                             await simulatePayment(order.id);
-                             alert("Order simulated as PAID!");
-                             fetchOrders();
-                           } catch(err) {
-                             alert("Simulation failed: " + err.message);
-                           }
-                        }}
-                        className="px-4 py-5 bg-gray-800 text-white text-[9px] font-black uppercase tracking-wider rounded-full hover:bg-gray-600 transition-all active:scale-95 shadow-lg flex items-center gap-1"
-                        title="Bypass M-Pesa (Dev Only)"
-                      >
-                         ⚡ Dev Pay
                       </button>
                     </div>
                   )}
