@@ -125,8 +125,48 @@ export default function CreateOrder() {
     }
   };
 
+  // Haversine formula to calculate distance in km
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(deg2rad(lat1)) *
+        Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c; // Distance in km
+    return d;
+  };
+
+  const deg2rad = (deg) => {
+    return deg * (Math.PI / 180);
+  };
+
+  const [distance, setDistance] = useState(0);
+  const [deliveryFee, setDeliveryFee] = useState(0);
+
+  useEffect(() => {
+    if (pickup.lat && pickup.lng && dropoff.lat && dropoff.lng) {
+      const dist = calculateDistance(
+        pickup.lat,
+        pickup.lng,
+        dropoff.lat,
+        dropoff.lng
+      );
+      setDistance(dist.toFixed(2));
+      setDeliveryFee(Math.ceil(dist * 1)); // 1 KES per km
+    } else {
+      setDistance(0);
+      setDeliveryFee(0);
+    }
+  }, [pickup, dropoff]);
+
   const isProcessing = !["idle", "success", "error"].includes(step);
-  const displayPrice = WEIGHT_OPTIONS[weight].price;
+  const basePrice = WEIGHT_OPTIONS[weight].price;
+  const displayPrice = basePrice + deliveryFee;
 
   return (
     <div className="min-h-screen bg-white text-black pb-32">
@@ -198,21 +238,41 @@ export default function CreateOrder() {
                 className="w-full mt-4 p-3 rounded-lg border"
               />
 
-              <input
-                type="tel"
-                placeholder="254XXXXXXXXX"
-                value={phoneNumber}
-                onChange={(e) => handlePhoneChange(e.target.value)}
-                className="w-full mt-4 p-3 rounded-lg border"
-              />
+              <div className="mt-4">
+                 <label className="text-xs font-bold text-gray-500 mb-1 block">
+                    M-Pesa Number for STK Push
+                 </label>
+                  <input
+                    type="tel"
+                    placeholder="2547XXXXXXXX"
+                    value={phoneNumber}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    className="w-full p-3 rounded-lg border"
+                  />
+              </div>
+
 
               {phoneError && (
                 <p className="text-red-500 text-sm mt-2">{phoneError}</p>
               )}
 
-              <div className="mt-6 flex justify-between font-bold">
-                <span>Total</span>
-                <span>KES {displayPrice}</span>
+              <div className="mt-6 space-y-2 border-t pt-4">
+                 <div className="flex justify-between text-sm text-gray-500">
+                    <span>Distance</span>
+                    <span>{distance} km</span>
+                 </div>
+                 <div className="flex justify-between text-sm text-gray-500">
+                    <span>Base Fare</span>
+                    <span>KES {basePrice}</span>
+                 </div>
+                 <div className="flex justify-between text-sm text-gray-500">
+                    <span>Distance Fee (1 KES/km)</span>
+                    <span>KES {deliveryFee}</span>
+                 </div>
+                 <div className="flex justify-between font-bold text-lg border-t pt-2">
+                    <span>Total</span>
+                    <span>KES {displayPrice}</span>
+                 </div>
               </div>
 
               <button
