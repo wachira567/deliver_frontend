@@ -1,42 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
-import { Search, MapPin, X, Loader2 } from "lucide-react";
+import { Search, MapPin, X, Loader2, Maximize2 } from "lucide-react";
 
-function DraggableMarker({ position, onMove }) {
-  return position ? (
-    <Marker
-      position={position}
-      draggable
-      eventHandlers={{
-        dragend: (e) => {
-          const { lat, lng } = e.target.getLatLng();
-          onMove({ lat, lng });
-        },
-      }}
-    />
-  ) : null;
-}
-
-function ClickHandler({ onClick }) {
-  useMapEvents({
-    click: (e) => onClick({ lat: e.latlng.lat, lng: e.latlng.lng }),
-  });
-  return null;
-}
-
-function FlyTo({ position }) {
-  const map = useMap();
-  useEffect(() => {
-    if (position) map.flyTo(position, 15, { duration: 1 });
-  }, [position, map]);
-  return null;
-}
+// ... (previous helper components)
 
 export default function LocationPicker({ label, placeholder, value, onChange }) {
   const [query, setQuery] = useState(value?.address || "");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [position, setPosition] = useState(
     value?.lat ? [value.lat, value.lng] : null
   );
@@ -168,19 +141,76 @@ export default function LocationPicker({ label, placeholder, value, onChange }) 
 
       {/* Map */}
       {showMap && (
-        <div className="mt-3 rounded-[20px] overflow-hidden border border-gray-100 shadow-sm" style={{ height: 220 }}>
-          <MapContainer
-            center={position || [-1.2864, 36.8172]}
-            zoom={position ? 15 : 12}
-            className="h-full w-full"
-            style={{ height: "100%", width: "100%" }}
-          >
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
-            <ClickHandler onClick={handleMapClick} />
-            <DraggableMarker position={position} onMove={handleMarkerDrag} />
-            <FlyTo position={position} />
-          </MapContainer>
-        </div>
+        <>
+           {/* Normal Map */}
+          <div className="mt-3 rounded-[20px] overflow-hidden border border-gray-100 shadow-sm relative group/map" style={{ height: 220 }}>
+            <MapContainer
+              center={position || [-1.2864, 36.8172]}
+              zoom={position ? 15 : 12}
+              className="h-full w-full"
+              style={{ height: "100%", width: "100%" }}
+            >
+              <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
+              <ClickHandler onClick={handleMapClick} />
+              <DraggableMarker position={position} onMove={handleMarkerDrag} />
+              <FlyTo position={position} />
+            </MapContainer>
+            
+            {/* Expand Button */}
+            <button 
+                type="button"
+                onClick={() => setExpanded(true)}
+                className="absolute top-2 right-2 bg-white p-2 rounded-lg shadow-md z-[400] text-gray-500 hover:text-black hover:bg-yellow-50 transition-all opacity-0 group-hover/map:opacity-100"
+                title="Expand Map"
+            >
+                <Maximize2 size={18} />
+            </button>
+          </div>
+
+          {/* Expanded Map Modal */}
+          {expanded && (
+             <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                 <div className="bg-white w-full h-full max-w-6xl max-h-[90vh] rounded-[30px] overflow-hidden relative shadow-2xl flex flex-col">
+                    {/* Header */}
+                    <div className="px-8 py-4 border-b flex justify-between items-center bg-white z-[1000]">
+                        <h3 className="font-bold text-lg">Select Location</h3>
+                        <button 
+                            onClick={() => setExpanded(false)}
+                            className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+                    
+                    {/* Full Map */}
+                    <div className="flex-1 relative">
+                        <MapContainer
+                        center={position || [-1.2864, 36.8172]}
+                        zoom={position ? 16 : 13}
+                        className="h-full w-full"
+                        >
+                        <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
+                        <ClickHandler onClick={handleMapClick} />
+                        <DraggableMarker position={position} onMove={handleMarkerDrag} />
+                        <FlyTo position={position} />
+                        </MapContainer>
+                        
+                         {/* Floating Address Bar */}
+                         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-xl z-[1000] font-medium text-sm flex items-center gap-2">
+                            <MapPin size={16} className="text-yellow-500" />
+                            {query || "Click map to select location"}
+                            <button 
+                                onClick={() => setExpanded(false)}
+                                className="ml-4 bg-black text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-yellow-500 hover:text-black transition"
+                            >
+                                Confirm
+                            </button>
+                         </div>
+                    </div>
+                 </div>
+             </div>
+          )}
+        </>
       )}
 
       {/* Coordinates display */}

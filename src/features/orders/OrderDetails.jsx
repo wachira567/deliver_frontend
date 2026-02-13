@@ -64,6 +64,13 @@ export default function OrderDetails() {
     };
 
     loadData();
+
+    // Poll for live location updates every 15 seconds if order is active
+    const interval = setInterval(() => {
+        if(id) loadData();
+    }, 15000);
+
+    return () => clearInterval(interval);
   }, [id]);
 
   const handleShare = () => {

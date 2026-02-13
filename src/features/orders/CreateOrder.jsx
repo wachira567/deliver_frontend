@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import LocationPicker from "../../components/maps/LocationPicker";
 
 const STEP_LABELS = {
@@ -139,18 +140,30 @@ export default function CreateOrder() {
         const paymentResult = await pollPaymentStatus(orderId);
 
         setStep("success");
-        setStatusMessage(
-            `Payment successful! Receipt: ${
-            paymentResult.mpesa_receipt_number || "confirmed"
-            }`
-        );
-
+        toast.success(`Payment successful! Receipt: ${paymentResult.mpesa_receipt_number || "confirmed"}`);
         setTimeout(() => navigate("/orders"), 2500);
     } catch (err) {
         setStep("error");
+        // toast.error(err.message || "Something went wrong."); // Optional: Don't toast if we show error UI
         setErrorMessage(err.message || "Something went wrong.");
     }
   };
+  
+  // Dev Pay Function
+  const handleDevPay = async () => {
+      if(!currentOrderId) return;
+      if(!window.confirm("Simulate successful payment? (Dev Only)")) return;
+      
+      try {
+          const { simulatePayment } = await import("../../api/payments");
+          await simulatePayment(currentOrderId);
+          toast.success("Order simulated as PAID!");
+          navigate("/orders");
+      } catch(e) {
+          toast.error("Simulation failed");
+      }
+  };
+
 
   // Haversine formula to calculate distance in km
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -318,12 +331,22 @@ export default function CreateOrder() {
                 <div className="mt-4">
                     <p className="text-red-600 text-sm mb-2">{errorMessage}</p>
                     {currentOrderId && (
+                        <div className="flex flex-col gap-2">
                         <button 
                             onClick={checkStatus}
                             className="text-sm text-green-600 underline font-semibold"
                         >
                             I have paid, check status again
                         </button>
+                        
+                        {/* Simulation Button */}
+                        <button 
+                            onClick={handleDevPay}
+                             className="text-xs text-gray-500 hover:text-black underline flex items-center justify-center gap-1 mt-2"
+                        >
+                            ⚡ Sandbox Stuck? Simulate Pay
+                        </button>
+                        </div>
                     )}
                 </div>
               )}
