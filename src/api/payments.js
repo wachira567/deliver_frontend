@@ -72,8 +72,22 @@ export function pollPaymentStatus(orderId, maxAttempts = 30) {
 
 export function validatePhoneNumber(phone) {
   const cleaned = phone.replace(/[\s\-+]/g, "");
-  if (!/^254\d{9}$/.test(cleaned)) {
-    return { valid: false, error: "Phone must be in format 254XXXXXXXXX (12 digits starting with 254)" };
+  
+  // Accept:
+  // 07XXXXXXXX (10 digits)
+  // 01XXXXXXXX (10 digits)
+  // 2547XXXXXXXX (12 digits)
+  // 2541XXXXXXXX (12 digits)
+  const regex = /^(?:254|0)?([17]\d{8})$/;
+
+  if (!regex.test(cleaned)) {
+    return { 
+      valid: false, 
+      error: "Enter a valid Safaricom number (e.g., 0712345678 or 01...)" 
+    };
   }
+  
+  // Normalize checking (optional: we return cleaned as is, likely 07... or 254...)
+  // But if we want to standardize for input:
   return { valid: true, phone: cleaned };
 }
