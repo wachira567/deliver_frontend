@@ -14,6 +14,10 @@ export function queryTransaction(checkoutRequestId) {
   return get(`/payments/query/${checkoutRequestId}`);
 }
 
+export function simulatePayment(orderId) {
+  return post(`/payments/simulate-order/${orderId}`, {});
+}
+
 export function pollPaymentStatus(orderId, maxAttempts = 30) {
   return new Promise((resolve, reject) => {
     let attempts = 0;
