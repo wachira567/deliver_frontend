@@ -64,6 +64,63 @@ export default function CourierDashboard() {
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [riderLocation, setRiderLocation] = useState(null);
+
+  // Track Rider Location
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          setRiderLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => console.error("Error getting location:", error),
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+      );
+      return () => navigator.geolocation.clearWatch(watchId);
+    }
+  }, []);
+
+  // Sync Location to Backend
+  useEffect(() => {
+     if (!riderLocation) return;
+     
+     const activeOrder = deliveries.find(d => 
+        d.status === "Picked Up" || d.status === "In Transit"
+     );
+
+     if (!activeOrder) return;
+
+     const syncLocation = async () => {
+        try {
+           const token = getToken();
+           // Map frontend ID back to backend ID if needed
+           const orderId = activeOrder.orderId || activeOrder.id;
+           
+           await fetch(`/api/courier/orders/${orderId}/location`, {
+              method: 'PATCH',
+              headers: {
+                 'Content-Type': 'application/json',
+                 'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                 latitude: riderLocation.lat,
+                 longitude: riderLocation.lng,
+                 location_description: "En route"
+              })
+           });
+        } catch (err) {
+           console.error("Failed to sync location:", err);
+        }
+     };
+
+     const intervalId = setInterval(syncLocation, 30000); // Sync every 30s
+     syncLocation(); // Initial sync
+
+     return () => clearInterval(intervalId);
+  }, [riderLocation, deliveries]);
 
   // Fetch rider profile data
   const fetchRiderData = useCallback(async () => {
@@ -352,13 +409,16 @@ export default function CourierDashboard() {
         {/* Right Side - Map */}
         <div className="flex-1 bg-slate-200 relative">
           <MapContainer
-            center={[-1.286389, 36.817223]}
+            center={riderLocation ? [riderLocation.lat, riderLocation.lng] : [-1.286389, 36.817223]}
             zoom={13}
             style={{ height: "100%", width: "100%" }}
             zoomControl={false}
           >
             <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
-            <Marker position={[-1.286389, 36.817223]} icon={DefaultIcon}>
+            <Marker 
+              position={riderLocation ? [riderLocation.lat, riderLocation.lng] : [-1.286389, 36.817223]} 
+              icon={DefaultIcon}
+            >
               <Popup>Your Location</Popup>
             </Marker>
           </MapContainer>
