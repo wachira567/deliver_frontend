@@ -26,9 +26,9 @@ const STEP_LABELS = {
 };
 
 const WEIGHT_OPTIONS = {
-  LIGHT: { label: "Light", kg: 3, price: 500 },
-  MEDIUM: { label: "Medium", kg: 12, price: 2000 },
-  HEAVY: { label: "Heavy", kg: 35, price: 3000 },
+  LIGHT: { label: "Light", kg: 3, price: 0 },
+  MEDIUM: { label: "Medium", kg: 12, price: 0 },
+  HEAVY: { label: "Heavy", kg: 35, price: 0 },
 };
 
 export default function CreateOrder() {
