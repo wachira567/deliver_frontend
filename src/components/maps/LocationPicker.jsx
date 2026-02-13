@@ -4,6 +4,36 @@ import { Search, MapPin, X, Loader2, Maximize2 } from "lucide-react";
 
 // ... (previous helper components)
 
+function DraggableMarker({ position, onMove }) {
+  return position ? (
+    <Marker
+      position={position}
+      draggable
+      eventHandlers={{
+        dragend: (e) => {
+          const { lat, lng } = e.target.getLatLng();
+          onMove({ lat, lng });
+        },
+      }}
+    />
+  ) : null;
+}
+
+function ClickHandler({ onClick }) {
+  useMapEvents({
+    click: (e) => onClick({ lat: e.latlng.lat, lng: e.latlng.lng }),
+  });
+  return null;
+}
+
+function FlyTo({ position }) {
+  const map = useMap();
+  useEffect(() => {
+    if (position) map.flyTo(position, 15, { duration: 1 });
+  }, [position, map]);
+  return null;
+}
+
 export default function LocationPicker({ label, placeholder, value, onChange }) {
   const [query, setQuery] = useState(value?.address || "");
   const [results, setResults] = useState([]);
