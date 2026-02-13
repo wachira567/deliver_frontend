@@ -28,17 +28,38 @@ export function pollPaymentStatus(orderId, maxAttempts = 30) {
         if (payment?.payment_status === "PAID") {
           clearInterval(interval);
           resolve(payment);
-        } else if (payment?.payment_status === "FAILED" || payment?.payment_status === "CANCELLED") {
+        } else if (
+          payment?.payment_status === "FAILED" ||
+          payment?.payment_status === "CANCELLED"
+        ) {
           clearInterval(interval);
-          reject(new Error("Payment failed or was cancelled"));
-        } else if (attempts >= maxAttempts) {
+          reject(new Error(payment?.failure_reason || "Payment failed or was cancelled"));
+        } else if (payment?.checkout_request_id && attempts % 5 === 0) {
+          // Every 5th attempt (10 seconds), query M-Pesa directly
+          // This handles cases where the callback callback failed or is prohibited
+          try {
+             const queryResult = await queryTransaction(payment.checkout_request_id);
+             if (queryResult?.payment?.payment_status === "PAID") {
+                clearInterval(interval);
+                resolve(queryResult.payment);
+             }
+          } catch (e) { 
+             console.warn("Manual query failed:", e);
+          }
+        } 
+        
+        if (attempts >= maxAttempts) {
           clearInterval(interval);
-          reject(new Error("Payment is processing. Check My Orders in a few minutes"));
+          reject(
+            new Error("Payment is processing. Check My Orders in a few minutes")
+          );
         }
       } catch (err) {
         if (attempts >= maxAttempts) {
           clearInterval(interval);
-          reject(new Error("Payment is processing. Check My Orders in a few minutes"));
+          reject(
+            new Error("Payment is processing. Check My Orders in a few minutes")
+          );
         }
       }
     }, 2000);

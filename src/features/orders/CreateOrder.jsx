@@ -70,58 +70,85 @@ export default function CreateOrder() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!pickup.lat || !pickup.address) {
-      setErrorMessage("Please select a pickup location.");
-      return;
-    }
+  const [currentOrderId, setCurrentOrderId] = useState(null);
 
-    if (!dropoff.lat || !dropoff.address) {
-      setErrorMessage("Please select a drop-off location.");
-      return;
-    }
-
-    const { valid, phone, error } = validatePhoneNumber(phoneNumber);
-    if (!valid) {
-      setPhoneError(error);
-      return;
-    }
-
+  const checkStatus = async () => {
+    if (!currentOrderId) return;
     try {
-      setStep("creating");
-
-      const selectedWeight = WEIGHT_OPTIONS[weight];
-
-      const result = await createOrder({
-        pickup_address: pickup.address,
-        pickup_lat: pickup.lat,
-        pickup_lng: pickup.lng,
-        destination_address: dropoff.address,
-        destination_lat: dropoff.lat,
-        destination_lng: dropoff.lng,
-        weight_kg: selectedWeight.kg,
-        parcel_description: description || `${selectedWeight.label} shipment`,
-      });
-
-      const orderId = result.order?.id || result.id;
-
-      setStep("initiating");
-      await initiatePayment(orderId, phone);
-
       setStep("polling");
-      const paymentResult = await pollPaymentStatus(orderId);
-
+      setErrorMessage("");
+      const paymentResult = await pollPaymentStatus(currentOrderId);
+      
       setStep("success");
       setStatusMessage(
         `Payment successful! Receipt: ${
           paymentResult.mpesa_receipt_number || "confirmed"
-        }`,
+        }`
       );
-
       setTimeout(() => navigate("/orders"), 2500);
     } catch (err) {
       setStep("error");
-      setErrorMessage(err.message || "Something went wrong.");
+      setErrorMessage(err.message || "Payment check failed.");
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!pickup.lat || !pickup.address) {
+        setErrorMessage("Please select a pickup location.");
+        return;
+    }
+
+    if (!dropoff.lat || !dropoff.address) {
+        setErrorMessage("Please select a drop-off location.");
+        return;
+    }
+
+    const { valid, phone, error } = validatePhoneNumber(phoneNumber);
+    if (!valid) {
+        setPhoneError(error);
+        return;
+    }
+
+    try {
+        setStep("creating");
+        setErrorMessage("");
+
+        const selectedWeight = WEIGHT_OPTIONS[weight];
+        
+        let orderId = currentOrderId;
+
+        if (!orderId) {
+            const result = await createOrder({
+                pickup_address: pickup.address,
+                pickup_lat: pickup.lat,
+                pickup_lng: pickup.lng,
+                destination_address: dropoff.address,
+                destination_lat: dropoff.lat,
+                destination_lng: dropoff.lng,
+                weight_kg: selectedWeight.kg,
+                parcel_description: description || `${selectedWeight.label} shipment`,
+            });
+            orderId = result.order?.id || result.id;
+            setCurrentOrderId(orderId);
+        }
+
+        setStep("initiating");
+        await initiatePayment(orderId, phone);
+
+        setStep("polling");
+        const paymentResult = await pollPaymentStatus(orderId);
+
+        setStep("success");
+        setStatusMessage(
+            `Payment successful! Receipt: ${
+            paymentResult.mpesa_receipt_number || "confirmed"
+            }`
+        );
+
+        setTimeout(() => navigate("/orders"), 2500);
+    } catch (err) {
+        setStep("error");
+        setErrorMessage(err.message || "Something went wrong.");
     }
   };
 
@@ -288,7 +315,17 @@ export default function CreateOrder() {
               )}
 
               {step === "error" && (
-                <p className="text-red-600 mt-4 text-sm">{errorMessage}</p>
+                <div className="mt-4">
+                    <p className="text-red-600 text-sm mb-2">{errorMessage}</p>
+                    {currentOrderId && (
+                        <button 
+                            onClick={checkStatus}
+                            className="text-sm text-green-600 underline font-semibold"
+                        >
+                            I have paid, check status again
+                        </button>
+                    )}
+                </div>
               )}
             </div>
           </div>
